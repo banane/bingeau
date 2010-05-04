@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>la douche</key>
+	<string>shower</string>
+	<key>le lavabo</key>
+	<string>sink</string>
+	<key>la toilette</key>
+	<string>toilet</string>
+	<key>le baignoire</key>
+	<string>bath tub</string>
+	<key>le cuisson</key>
+	<string>cushion</string>
+	<key>la jupe</key>
+	<string>skirt</string>
+	<key>le manteau</key>
+	<string>coat</string>
+	<key>le chapeau</key>
+	<string>hat</string>
+	<key>le sac</key>
+	<string>purse</string>
+	<key>le sac à dos</key>
+	<string>backpack</string>
+</dict>
+</plist>
