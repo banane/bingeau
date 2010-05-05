@@ -1,29 +1,26 @@
 //
-//  bingeauAppDelegate.m
-//  bingeau
+//  bingueauAppDelegate.m
+//  bingueau
 //
 //  Created by Anna & Mary on 5/1/10.
 //  Copyright banane.com 2010. All rights reserved.
 //
 
-#import "bingeauAppDelegate.h"
+#import "bingueauAppDelegate.h"
 #import "gameViewController.h"
+#import "resultsViewController.h"
 
-@implementation bingeauAppDelegate
+@implementation bingueauAppDelegate
 
-@synthesize window, fdict,mySound;
+@synthesize window, fdict,mySound, navCtrl ;
 
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {    
+
 	
-	UINavigationController *nav = [[UINavigationController alloc] init];
-    gameViewController *gvc = [[gameViewController alloc] 
-										   initWithNibName:@"mainGame"
-										   bundle:nil];
-    [nav pushViewController:gvc animated:NO];
-    [gvc release];
-    [window addSubview:nav.view];
+    [window addSubview:[navCtrl view]];
     [window makeKeyAndVisible];
+
 	[self playStartupSound];
 	
 	[self setupForeignDictionary];
