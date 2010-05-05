@@ -1,34 +1,44 @@
 //
 //  gameViewController.m
-//  bingeau
+//  bingueau
 //
 //  Created by Anna on 5/3/10.
 //  Copyright 2010 __MyCompanyName__. All rights reserved.
 //
 
 #import "gameViewController.h"
-#import "bingeauAppDelegate.h"
+#import "bingueauAppDelegate.h"
+#import "resultsViewController.h"
 
 @implementation gameViewController
 
 @synthesize fdict; // retained from appDelegate
-@synthesize startButton, callWordLabel, newWordButton, square; //UI objects
-@synthesize selectedBoxes, keyDiscard, keyDeck, callWord, gameState, lineCount, keysInPlay,snapSound;
+@synthesize startButton, callWordLabel, newWordButton, square, timerLabel; //UI objects
+@synthesize selectedBoxes, keyDiscard, keyDeck, callWord, gameState,snapSound;
 
 #pragma mark setupstuff
 
 -(void)viewDidLoad {
-	bingeauAppDelegate *appDelegate = (bingeauAppDelegate *)[[UIApplication sharedApplication] delegate];
+	self.title = @"le Bingueau";
+	bingueauAppDelegate *appDelegate = (bingueauAppDelegate *)[[UIApplication sharedApplication] delegate];
 	fdict = appDelegate.fdict;	
 	
-	
-	[self setupBoard];
-	[self pickWord];
-
+	// start button?
+	startButton.hidden = NO;
+	newWordButton.hidden = YES;
 	[super viewDidLoad];
  }
 
 -(IBAction)startGame{
+	[self setupBoard];
+	[self pickWord];
+	timer = [NSTimer scheduledTimerWithTimeInterval:1
+									 target:self
+								   selector:@selector(startClock)
+								   userInfo:nil
+									repeats:YES];	
+	count = 0; // reset time
+	
 	startButton.hidden = YES;
 	callWordLabel.hidden = NO;
 	newWordButton.hidden = NO;
@@ -48,25 +58,30 @@
 		}
 	}
 	
-	selectedBoxes = [[NSMutableArray alloc] init];		// chosen keys
-	keyDiscard = [[NSMutableArray alloc] init];			// discarded callwords
-	keyDeck =  [[NSMutableArray alloc] initWithArray:[fdict allKeys]]; // available callwords to pick from
+	selectedBoxes = [[[NSMutableArray alloc] init] retain];		// chosen keys
+	keyDiscard = [[[NSMutableArray alloc] init] retain];			// discarded callwords
+	keyDeck =  [[[NSMutableArray alloc] initWithArray:[fdict allKeys]] retain]; // available callwords to pick from
 	
 	// display key values in board
 	for(UIView *view in [[self view] subviews ]) {
 		if(view.tag < 25){
 			if([view isKindOfClass:[UIButton class]]) {
 				[view setBackgroundColor:[UIColor redColor]];
+				//[view setTitleColor:[UIColor blackColor] forState:UIControlStateNormal];
+				//[view setTextAlignment:UITextAlignmentCenter];
 				[view setAlpha:0.67f];
-				[view setTitle:[keysInPlay objectAtIndex:view.tag] forState:UIControlStateNormal];						
+				[view setTitle:[keysInPlay objectAtIndex:view.tag] forState:UIControlStateNormal];	
+				
 			}
 		}
 	}	
 	startButton.hidden = NO;
 	callWordLabel.hidden = YES;
 	newWordButton.hidden = YES;
-	
+	timerLabel.hidden = NO;
 }
+
+
 
 #pragma mark UI animation
 
@@ -92,109 +107,20 @@
 	}
 }
 
-
-#pragma mark gameActions
-
-- (void)pickWord{
-	int i;
-	i=arc4random() % [keyDeck count];
+-(void)startClock{
+	count++;
+	int mins = count/60;
+	int seconds = count % 60;
+	timerLabel.text = [NSString stringWithFormat:@"%02d:%02d",mins,seconds];
 	
-	callWord = [fdict objectForKey:[keyDeck objectAtIndex:i]];
-	[keyDeck removeObject:callWord];
-	NSLog(@"callWord: %@", callWord);
-	
-	callWordLabel.text = callWord;
-}
-
--(IBAction)newCallWord{
-	[keyDiscard addObject:callWord];	
-	[self pickWord];
-}
-
--(void)evaluateBoard{
-	gameState = 0;
-	if([selectedBoxes count] > 4){	
-		
-		for(int i=0; i<[selectedBoxes count]; i++){
-			int senderTag = [[selectedBoxes objectAtIndex:i] intValue];
-			int j=0;
-			int k=0;
-			
-			// check for vertical matches
-			if(senderTag < 5){
-				NSLog(@"vertical evaluation");
-				lineCount = 1;
-				NSLog(@"sendertag: %d",senderTag);
-				
-				for(j=1;j<5;j++){
-					k = senderTag + (j*5);
-					NSLog(@"k: %d", k);
-					if ([selectedBoxes containsObject:[NSNumber numberWithInt:k]]){
-						lineCount++;
-					} else{
-						NSLog(@"k not in selectboxes");
-						break;
-					}
-					k=0;
-				}
-				lineCount = [self checkWinner:lineCount];
-			}
-			
-			int val = senderTag % 5;
-			if(val == 0) { // is multiple of 5, first column
-				NSLog(@"vertical evaluation");
-				lineCount = 1;
-				for(j=1;j<5;j++){ // evaluate potential mates
-					if ([selectedBoxes containsObject:[NSNumber numberWithInt:(j+senderTag)]]){
-						lineCount++;
-					} else {
-						break;
-					}
-				}
-				lineCount = [self checkWinner:lineCount];
-			}
-			// check diagnoals only on corner cells
-			if((senderTag == 0) || (senderTag == 4)){
-				NSLog(@"in diagonals with st: %d", senderTag);
-				NSLog(@"%@", selectedBoxes);
-				int inc = 1;
-				for(j=1;j<24;j++){
-					j=j*5;
-					if([selectedBoxes containsObject:[NSNumber numberWithInt:(senderTag + j + inc)]]){
-						lineCount++;
-					}
-					if(senderTag ==0){
-						inc--;
-					}else{
-						inc++;
-					}
-				}
-				lineCount = [self checkWinner:lineCount];
-			}
-		}
-	}
 }
 
 
--(int)checkWinner:(int)lineCount{
-	if(gameState ==0){
-		if(lineCount > 4){
-			gameState = 1;
-			//		NSLog(@"we have a winner! horizontally. SenderTag: %d, linecount: %d", senderTag, lineCount);
-			[self alertWin];
-		} else {
-			lineCount = 0;
-		}	
-		return lineCount;
-	} else{
-		return 0;
-	}
-}
 
 -(void)playSnap{
 	NSString *sndpath = [[NSBundle mainBundle] pathForResource:@"snap" ofType:@"wav"];
 	CFURLRef baseURL = (CFURLRef)[NSURL fileURLWithPath:sndpath];
-
+	
 	// Identify it as not a UI Sound
 	AudioServicesCreateSystemSoundID(baseURL, &snapSound);
 	AudioServicesPropertyID flag = 0;  // 0 means always play
@@ -202,15 +128,175 @@
 	AudioServicesPlaySystemSound(snapSound);		
 }
 
+-(void)showResults{
+	NSLog(@"in showresults");
+	newWordButton.hidden = YES;
+	startButton.hidden = NO;
+	resultsViewController *rvc = [[resultsViewController alloc] initWithNibName:@"resultsViewController" bundle:nil];
+	rvc.selectedBoxes = selectedBoxes;
+	rvc.WordsOnBoard = keysInPlay;
+	rvc.lineArray = lineArray;
+	rvc.keyDiscard = keyDiscard;
+	NSLog(@"timerLabel.text: %@", timerLabel.text);
+	rvc.rTimeString = timerLabel.text;
+	[[self navigationController] pushViewController:rvc animated:YES];
+
+	[rvc autorelease];
+}
+
+#pragma mark gameActions
+
+- (void)pickWord{
+	int i;
+	i=arc4random() % [keyDeck count];
+	// get the key
+	NSString *callWordKey = [keyDeck objectAtIndex:i];
+	NSLog(@"callwordkey: %@", callWordKey);
+	
+	callWord = [fdict objectForKey:callWordKey];	
+
+	[keyDeck removeObject:callWordKey];	
+	[keyDiscard addObject:callWord];
+
+	NSLog(@"callWord: %@", callWord);
+	NSLog(@"discard pile: %@", keyDiscard);
+	
+	callWordLabel.text = callWord;
+}
+
+-(IBAction)newCallWord{
+	[self pickWord];
+}
+
+-(void)evaluateBoard{
+	int sBcount = [selectedBoxes count];
+	gameState = 0;
+	int lineCount = 0;
+	NSLog(@"in evalboard, selectedboxes array: %d", [selectedBoxes count]);
+	
+	if([selectedBoxes count] > 4){
+		for(int i=0;i<sBcount;i++){
+			int senderTag = [[selectedBoxes objectAtIndex:i] intValue];
+			NSLog(@" selectbox item ------------ %d", senderTag);
+			int j=0;
+			int k=0;
+			
+			NSLog(@"horizontal evaluation");
+			int val = senderTag % 5;
+			if(val == 0){ // is multiple of 5, first column
+				lineCount = 1;
+				lineArray = nil;
+				lineArray = [[NSMutableArray alloc] initWithObjects:[NSNumber numberWithInt:senderTag],nil];
+				
+				for(j=1;j<5;j++){ // evaluate potential mates
+					if ([selectedBoxes containsObject:[NSNumber numberWithInt:(j+senderTag)]]){
+						lineCount++;
+						[lineArray addObject:[NSNumber numberWithInt:(j+senderTag)]];
+					}
+					
+				}
+				NSLog(@"the line array count is: %d, lineCount: %d", [lineArray count], lineCount);
+				if(lineCount > 4){
+					if([self checkWinner:lineCount]) {
+						[self showResults];
+						break;
+					}
+				}
+			}
+			NSLog(@"vertical evaluation");
+			// check for vertical matches
+			if(senderTag < 5){
+				lineCount = 1;
+				lineArray = nil;
+				lineArray = [[NSMutableArray alloc] initWithObjects:[NSNumber numberWithInt:senderTag], nil];
+				
+				for(j=1;j<5;j++){
+					k = senderTag +  (j*5);
+					if ([selectedBoxes containsObject:[NSNumber numberWithInt:k]]){
+						[lineArray addObject:[NSNumber numberWithInt:k]];
+						lineCount++;
+					}
+				}
+				NSLog(@"the line array count is: %d, lineCount: %d", [lineArray count], lineCount);
+				if(lineCount > 4){
+					if([self checkWinner:lineCount]) {
+						[self showResults];
+						break;
+					}
+				}
+				
+			}
+			if(gameState > 0) break;
+			
+		
+			
+			// check diagnoals only on corner cells
+			if((senderTag == 0) || (senderTag == 4)){
+				lineCount = 1;
+				lineArray = nil;
+				lineArray = [[NSMutableArray alloc] initWithObjects:[NSNumber numberWithInt:senderTag],nil];
+				NSLog(@"in diagonals with sender tag: %d", senderTag);
+				int l = 1;
+				int j;
+				NSLog(@"++++++++++ selectedboxes: %@", selectedBoxes);
+				for(j=1;j<5;j++){
+					int k=j*5;
+					if(senderTag == 0){ k = k + senderTag + l;}
+					if(senderTag == 4){ k = k + senderTag - l;}
+					if([selectedBoxes containsObject:[NSNumber numberWithInt:k]]){
+						[lineArray addObject:[NSNumber numberWithInt:k]];
+						lineCount++;
+					}
+					l++;
+				}
+				if(lineCount > 4){
+					if([self checkWinner:lineCount]) {
+						[self showResults];
+						break;
+					}
+				}
+			}
+		}
+	}
+}
+
+
+-(BOOL)checkWinner:(int)lineCount{
+	NSLog(@"in checkwinner");
+	NSLog(@"Keydiscard: %@",keyDiscard); 
+	int winCount = 0;
+	for(int i=0;i<lineCount; i++){
+		int wordkey = [[lineArray objectAtIndex:i] intValue];
+		NSLog(@"--- keysinplay: %@", keysInPlay);
+		NSString *fr_word = [keysInPlay objectAtIndex:wordkey];
+		NSString *eng_word = [fdict objectForKey:fr_word];
+		NSLog(@"the french word is: %@  for English word: %@, for key: %d",fr_word, eng_word, wordkey);
+		if([keyDiscard containsObject:eng_word]){
+			NSLog(@"Yes, %@ was in the deck.", eng_word);
+			winCount++;
+		} else {
+			NSLog(@"no, %@ was never a correct selection.",eng_word);
+		}
+	}
+	if(winCount==5){
+		[timer invalidate];
+		return YES;
+	} else {
+		return NO;
+	}
+}
+
 -(void)alertWin{
-//	[timer invalidate];
+	// deprecated
+	[timer invalidate];
 	UIAlertView *charAlert = [[UIAlertView alloc]
 							  initWithTitle:@"Félicitations!"
 							  message:@"Vous êtes le champion! Vous êtes très intelligent, bien sûr."
 							  delegate:nil
-							  cancelButtonTitle:@"Cancel"
+							  cancelButtonTitle:@"Abandonnée"
 							  otherButtonTitles:nil];
-	[charAlert addButtonWithTitle:@"Encore!"];
+	[charAlert addButtonWithTitle:@"Encore"];
+	[charAlert addButtonWithTitle:@"Les Resultats"];
 	
 	charAlert.delegate = self;
 	
@@ -218,16 +304,19 @@
 	[charAlert autorelease];	
 }
 
-- (void)dealloc {
-    [super dealloc];
-}
 
 - (void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex{
 	// reload board
 	if(buttonIndex == 1){		
-		[self setupBoard];
-				
+		[self setupBoard];				
 	}
+}
+
+- (void)dealloc {
+	[keyDeck release];
+	[keyDiscard release];
+//	[keysInPlay release];
+    [super dealloc];
 }
 
 @end
