@@ -1,0 +1,1 @@
+A simple iPhone app for educational purposes- to help folks learn foriegn languages. Bingo, or "bingeau" in French, is the name of the game!
